@@ -33,27 +33,28 @@ while reboot :
         def colored(text, color = "", reset = Style.RESET_ALL) :
             return color + text + reset 
 
-        def cprint(text, color = "", reset = Style.RESET_ALL, end = "\n") :
+        def colored_print(text, color = "", reset = Style.RESET_ALL, end = "\n") :
             print(colored(text, color, reset), end = end)
 
-        def cinput(prompt, color = "", reset = Style.RESET_ALL) :
+        def colored_input(prompt, color = "", reset = Style.RESET_ALL) :
             return input(colored(prompt, color=color, reset=reset))
 
         def choice_input(prompt, choices = ["o", "n"], color = "", reset = Style.RESET_ALL) :
             r = ""
             while not r in choices :
-                r = cinput(prompt, color=color, reset=reset)
+                r = colored_input(prompt, color=color, reset=reset)
             return r
 
         def number_input(prompt, color = "", reset = Style.RESET_ALL) :
             r = 0
             while True :
                 try :
-                    r = int(cinput(prompt=prompt, color=color, reset=reset))
+                    r = int(colored_input(prompt=prompt, color=color, reset=reset))
                     break
                 except ValueError :
                     continue
             return r
+    
 
         def on_close() :
             
@@ -70,7 +71,7 @@ while reboot :
 
             with open(path + ("\\" if is_windows else "/") + "data-smtp.json", "w") as s_to_write :
                 s_to_write.write(json.dumps(json_data))
-                cprint("Enregistré.", Fore.GREEN)
+                colored_print("Enregistré.", Fore.GREEN)
 
         atexit.register(on_close)
 
@@ -112,9 +113,9 @@ while reboot :
         sender = settings['email']
         password = settings['password']
 
-        if choice_input(f"\nQue voulez-vous faire ?\n - Envoyer un Nouveau message{chr(10) + ' - Regarder, modifier et/ou envoyer un Brouillon' if not json_data['drafts'] == [] else ''}\n(n{'/b' if not json_data['drafts'] == [] else ''})>>> ",
-                        (["n", "b"] if not json_data["drafts"] == [] else ["n"])) == "b" : 
-            cprint("\nQuel brouillon voulez-vous regarder ?")
+        what_to_do_main = choice_input(f"\nQue voulez-vous faire ?\n - Envoyer un Nouveau message{chr(10) + ' - Regarder, modifier et/ou envoyer un Brouillon' if not json_data['drafts'] == [] else ''}\n - Quitter\n(n{'/b' if not json_data['drafts'] == [] else ''}/q)>>> ", (["n", "b", "q"] if not json_data["drafts"] == [] else ["n", "q"]))
+        if what_to_do_main == "b" : 
+            colored_print("\nQuel brouillon voulez-vous regarder ?")
             for i_draft, d in enumerate(json_data["drafts"]) :
                 if not "Subject" in json_data["drafts"][i_draft] :
                     json_data["drafts"][i_draft]["Subject"] = "<Sans titre>"
@@ -152,7 +153,7 @@ while reboot :
                     receiver = show_draft["To"] if not show_draft["To"] == "<Sans destinataire>" else input("À : ")
                     subject = show_draft["Subject"] if not show_draft["Subject"] == "<Sans titre>" else input("Sujet : ")
                     if not show_draft["From"] == settings["email"] :
-                        cprint("L'expéditeur de ce brouillon n'est pas celui configuré dans les paramètres.", Fore.YELLOW)
+                        colored_print("L'expéditeur de ce brouillon n'est pas celui configuré dans les paramètres.", Fore.YELLOW)
                         print(f" - Utiiser le mail configuré dans les Paramètres ({settings['email']})\n - Utiliser l'expéditeur de ce Brouillon ({show_draft['From']})")
                         if choice_input("(p/b)>>> ", ["p", "b"]) == "b" :
                             password = pwinput(mask="•", prompt=f"Entrez le mot de passe pour {show_draft['From']} : ", )
@@ -183,24 +184,24 @@ while reboot :
                                 server.login(show_draft["From"], password)
                             except smtplib.SMTPAuthenticationError :
                                 print()
-                                cprint("Erreur : Indentifiant ou mot de passe incorrect.", Fore.RED)
+                                colored_print("Erreur : Indentifiant ou mot de passe incorrect.", Fore.RED)
                                 input()
                             print()
-                            cprint("Connexion effectuée\n", Fore.GREEN)
+                            colored_print("Connexion effectuée\n", Fore.GREEN)
 
                             
                             print(f"Envoi du message à {receiver} en cours...")
                             server.sendmail(sender, receiver, message.as_string())
-                            cprint("Message envoyé", Fore.GREEN)
+                            colored_print("Message envoyé", Fore.GREEN)
                             need_draft = False
                             delete_draft = show_draft
                             exit()
                     except TimeoutError :
-                        cprint(f"Le serveur n'a pas répondu à temps. Merci de vérifier que le nom {settings['server']} et le port {settings['port']} sont correct.", Fore.RED)
+                        colored_print(f"Le serveur n'a pas répondu à temps. Merci de vérifier que le nom {settings['server']} et le port {settings['port']} sont correct.", Fore.RED)
                         input("Appuyez sur [Entrée] pour terminer.")
                         exit()
                     except socket.gaierror :
-                        cprint("Le serveur n'a pas répondu. Veuillez vérifier votre connexion à Internet.", Fore.RED)
+                        colored_print("Le serveur n'a pas répondu. Veuillez vérifier votre connexion à Internet.", Fore.RED)
                         input("Appuyez sur [Entrée] pour terminer.")
                         exit()
                 if what_to_do_with_draft == "s" :
@@ -208,87 +209,90 @@ while reboot :
                     exit()
             except KeyError :
                 pass
-
-        print()
-        # Create a secure SSL context
-        print("Création d'un contexte SSL sécurisé en cours...")
-        context = ssl.create_default_context()
-        print("Contexte SSL sécurisé créé")
-        domain = settings['server']
-        print()
-        receiver = input("Entrez l'adresse du destinataire et pressez [Entrée]\n >>> ")
-        need_draft = True
-        drafts[used_draft]["To"] = receiver
-        message = MIMEMultipart("alternative")
-        message["Subject"] = input("Entrez le titre de votre e-mail et pressez [Entrée]\n >>> ")
-        drafts[used_draft]["Subject"] = message["Subject"]
-        message["From"] = sender
-        drafts[used_draft]["From"] = message["From"]
-        message["To"] = receiver
-        buffer = []
-        drafts[used_draft]["list_of_lines_content"] = []
-        print("Entrez votre message. Quand vous avez terminé, entrez trois deux-points (:::) sur une ligne isolée.\n")
-        while True:
-            line = input()
-            if line == ":::":
-                break
-            buffer.append(line)
-            drafts[used_draft]["list_of_lines_content"].append(line)
-        text = "\n".join(buffer)
-        drafts[used_draft]["text_content"] = text
-        text = markdown(text)
-        
-        text = "<html>" + text.replace("\n", "<br/>") + "</html>"
-        
-        message.attach(MIMEText(text, "html"))
-        print(f"Connexion à {domain} avec le port {settings['port']} en cours...")
-        try :
-            with smtplib.SMTP_SSL(domain, settings["port"], context=context) as server:
-                print()
-                print(f"Connexion à {domain} en tant que {sender} en cours...")
-                try :
-                    server.login(sender, password)
-                except smtplib.SMTPAuthenticationError :
+        elif what_to_do_main == "n" :
+            print()
+            # Create a secure SSL context
+            print("Création d'un contexte SSL sécurisé en cours...")
+            context = ssl.create_default_context()
+            print("Contexte SSL sécurisé créé")
+            domain = settings['server']
+            print()
+            receiver = input("Entrez l'adresse du destinataire et pressez [Entrée]\n >>> ")
+            need_draft = True
+            drafts[used_draft]["To"] = receiver
+            message = MIMEMultipart("alternative")
+            message["Subject"] = input("Entrez le titre de votre e-mail et pressez [Entrée]\n >>> ")
+            drafts[used_draft]["Subject"] = message["Subject"]
+            message["From"] = sender
+            drafts[used_draft]["From"] = message["From"]
+            message["To"] = receiver
+            buffer = []
+            drafts[used_draft]["list_of_lines_content"] = []
+            print("Entrez votre message. Quand vous avez terminé, entrez trois deux-points (:::) sur une ligne isolée.\n")
+            while True:
+                line = input()
+                if line == ":::":
+                    break
+                buffer.append(line)
+                drafts[used_draft]["list_of_lines_content"].append(line)
+            text = "\n".join(buffer)
+            drafts[used_draft]["text_content"] = text
+            text = markdown(text)
+            
+            text = "<html>" + text.replace("\n", "<br/>") + "</html>"
+            
+            message.attach(MIMEText(text, "html"))
+            print(f"Connexion à {domain} avec le port {settings['port']} en cours...")
+            try :
+                with smtplib.SMTP_SSL(domain, settings["port"], context=context) as server:
                     print()
-                    cprint("Erreur : Indentifiant ou mot de passe incorrect.", Fore.RED)
-                    input()
-                print()
-                print("Connexion effectuée\n")
+                    print(f"Connexion à {domain} en tant que {sender} en cours...")
+                    try :
+                        server.login(sender, password)
+                    except smtplib.SMTPAuthenticationError :
+                        print()
+                        colored_print("Erreur : Indentifiant ou mot de passe incorrect.", Fore.RED)
+                        input()
+                    print()
+                    print("Connexion effectuée\n")
 
-                
-                print(f"Envoi du message à {receiver} en cours...")
-                server.sendmail(sender, receiver, message.as_string())
-                cprint("Message envoyé", Fore.GREEN)
-                need_draft = False
-        except TimeoutError :
-            cprint(f"Le serveur n'a pas répondu à temps. Merci de vérifier que le nom {settings['server']} et le port {settings['port']} sont correct.", Fore.RED)
-            input("Appuyez sur [Entrée] pour terminer.")
-            exit()
-        except socket.gaierror :
-            cprint("Le serveur n'a pas répondu. Veuillez vérifier votre connexion à Internet.", Fore.RED)
-            input("Appuyez sur [Entrée] pour terminer.")
+                    
+                    print(f"Envoi du message à {receiver} en cours...")
+                    server.sendmail(sender, receiver, message.as_string())
+                    colored_print("Message envoyé", Fore.GREEN)
+                    need_draft = False
+            except TimeoutError :
+                colored_print(f"Le serveur n'a pas répondu à temps. Merci de vérifier que le nom {settings['server']} et le port {settings['port']} sont correct.", Fore.RED)
+                input("Appuyez sur [Entrée] pour terminer.")
+                exit()
+            except socket.gaierror :
+                colored_print("Le serveur n'a pas répondu. Veuillez vérifier votre connexion à Internet.", Fore.RED)
+                input("Appuyez sur [Entrée] pour terminer.")
+                exit()
+
+        elif what_to_do_main == "q" :
             exit()
     except KeyboardInterrupt :
-        cprint("\nProgramme interrompu.", Fore.RED)
+        colored_print("\nProgramme interrompu.", Fore.RED)
         input()
     except smtplib.SMTPRecipientsRefused :
-        cprint("Adresse e-mail du destinataire invalide.", Fore.RED)
+        colored_print("Adresse e-mail du destinataire invalide.", Fore.RED)
         input()
     except smtplib.SMTPSenderRefused :
-        cprint("Adresse de l'expéditeur invalide.", Fore.RED)
+        colored_print("Adresse de l'expéditeur invalide.", Fore.RED)
         input()
     except FileNotFoundError :
-        cprint("Fichier de paramètres non trouvé.", Fore.YELLOW)
+        colored_print("Fichier de paramètres non trouvé.", Fore.YELLOW)
         print("Création d'un fichier vide en cours.")
         with open(path + ("\\" if is_windows else "/") + "data-smtp.json", "x") as f :
             empty_json = '{"settings":{"server":"","email":"","password":"","port":0},"drafts":[],"contacts":[]}'
             f.write(empty_json)
-            cprint("Fichier vide créé.", Fore.GREEN)
+            colored_print("Fichier vide créé.", Fore.GREEN)
             print("Changement des droits d'accès")
             os.chmod(path + ("\\" if is_windows else "/") + "data-smtp.json", S_IRUSR | S_IWUSR)
         print("Redémarrage en cours")
         reboot = True
     #except Exception as e:
-    #   cprint(f"\nUne erreur inattendue a été détectée. :\n\n{e}", Fore.RED)
+    #   colored_print(f"\nUne erreur inattendue a été détectée. :\n\n{e}", Fore.RED)
     #  input()
     #   exit()
