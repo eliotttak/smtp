@@ -17,6 +17,7 @@ while reboot :
         if is_windows :
             from colorama import just_fix_windows_console
         from pwinput import pwinput
+        from stat import S_IRUSR, S_IWUSR
         json_data = {}
 
         path = os.path.dirname(__file__)
@@ -283,6 +284,8 @@ while reboot :
             empty_json = '{"settings":{"server":"","email":"","password":"","port":0},"drafts":[],"contacts":[]}'
             f.write(empty_json)
             cprint("Fichier vide créé.", Fore.GREEN)
+            print("Changement des droits d'accès")
+            os.chmod(path + ("\\" if is_windows else "/") + "data-smtp.json", S_IRUSR | S_IWUSR)
         print("Redémarrage en cours")
         reboot = True
     #except Exception as e:
