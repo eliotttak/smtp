@@ -111,7 +111,8 @@ while reboot :
         sender = settings['email']
         password = settings['password']
 
-        if choice_input(f"\nQue voulez-vous faire ?\n - Envoyer un Nouveau message{'\n - Regarder, modifier et/ou envoyer un Brouillon' if not json_data["drafts"] == [] else ""}\n(n{'/b' if not json_data["drafts"] == [] else ""})>>> ", (["n", "b"] if not json_data["drafts"] == [] else ["n"])) == "b" : 
+        if choice_input(f"\nQue voulez-vous faire ?\n - Envoyer un Nouveau message{chr(10) + ' - Regarder, modifier et/ou envoyer un Brouillon' if not json_data['drafts'] == [] else ''}\n(n{'/b' if not json_data['drafts'] == [] else ''})>>> ",
+                        (["n", "b"] if not json_data["drafts"] == [] else ["n"])) == "b" : 
             cprint("\nQuel brouillon voulez-vous regarder ?")
             for i_draft, d in enumerate(json_data["drafts"]) :
                 if not "Subject" in json_data["drafts"][i_draft] :
