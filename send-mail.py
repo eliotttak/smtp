@@ -4,8 +4,10 @@ while reboot :
     try :
         import smtplib
         import ssl
+        from email import encoders
         from email.mime.text import MIMEText
         from email.mime.multipart import MIMEMultipart
+        from email.mime.base import MIMEBase
         from markdown import markdown
         import json
         import os
@@ -29,11 +31,12 @@ while reboot :
         save_settings = False
         settings = {}
         delete_draft = {}
+        NEWLINE = "\n"
 
         def colored(text, color = "", reset = Style.RESET_ALL) :
             return color + text + reset 
 
-        def colored_print(text, color = "", reset = Style.RESET_ALL, end = "\n") :
+        def colored_print(text, color = "", reset = Style.RESET_ALL, end = NEWLINE) :
             print(colored(text, color, reset), end = end)
 
         def colored_input(prompt, color = "", reset = Style.RESET_ALL) :
@@ -113,7 +116,7 @@ while reboot :
         sender = settings['email']
         password = settings['password']
 
-        what_to_do_main = choice_input(f"\nQue voulez-vous faire ?\n - Envoyer un Nouveau message{chr(10) + ' - Regarder, modifier et/ou envoyer un Brouillon' if not json_data['drafts'] == [] else ''}\n - Quitter\n(n{'/b' if not json_data['drafts'] == [] else ''}/q)>>> ", (["n", "b", "q"] if not json_data["drafts"] == [] else ["n", "q"]))
+        what_to_do_main = choice_input(f"\nQue voulez-vous faire ?\n - Envoyer un Nouveau message{NEWLINE + ' - Regarder, modifier et/ou envoyer un Brouillon' if not json_data['drafts'] == [] else ''}\n - Quitter\n(n{'/b' if not json_data['drafts'] == [] else ''}/q)>>> ", (["n", "b", "q"] if not json_data["drafts"] == [] else ["n", "q"]))
         if what_to_do_main == "b" : 
             colored_print("\nQuel brouillon voulez-vous regarder ?")
             for i_draft, d in enumerate(json_data["drafts"]) :
@@ -242,6 +245,15 @@ while reboot :
             text = "<html>" + text.replace("\n", "<br/>") + "</html>"
             
             message.attach(MIMEText(text, "html"))
+            file_part = MIMEBase('application', 'octet-stream')
+            file_part.set_payload(open("C:\\Users\\takvoriane\\Documents\\metalkitor.txt").read())
+            encoders.encode_base64(file_part)
+            file_part.add_header(
+                'Content-Disposition',
+                'attachment; filename=C:\\Users\\takvoriane\\Documents\\metalkitor.txt'
+            )
+            message.attach(file_part)
+            #message.attach(MIMEText(open("C:\\Users\\takvoriane\\Documents\\truc.txt").read(), ))
             print(f"Connexion à {domain} avec le port {settings['port']} en cours...")
             try :
                 with smtplib.SMTP_SSL(domain, settings["port"], context=context) as server:
