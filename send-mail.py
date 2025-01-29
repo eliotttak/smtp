@@ -8,6 +8,7 @@ while reboot :
         from email.mime.text import MIMEText
         from email.mime.multipart import MIMEMultipart
         from email.mime.base import MIMEBase
+        from email.mime.application import MIMEApplication
         from markdown import markdown
         import json
         import os
@@ -246,13 +247,16 @@ while reboot :
             
             message.attach(MIMEText(text, "html"))
 
-            file_name = "send-mail.py"
-            attachment = open(file_name, 'rb')
-            obj = MIMEBase('application', 'octet-stream')
-            obj.set_payload((attachment).read())
-            encoders.encode_base64(obj)
-            obj.add_header('Content-Disposition',"attachment", filename=file_name)
-            message.attach(obj)
+            if input("Voulez-vous ajouter une pièce jointe ?") == "o" :
+                file_name = "./test.txt"
+                attachment = open(file_name, 'rb')
+                part = MIMEApplication(
+                    attachment.read(),
+                    Name = os.path.basename(file_name)
+                )
+                attachment.close()
+                part['Content-Disposition'] = 'attachment; filename="%s"' % os.path.basename(file_name)
+                message.attach(part)
             
 
             print(f"Connexion à {domain} avec le port {settings['port']} en cours...")
