@@ -245,15 +245,16 @@ while reboot :
             text = "<html>" + text.replace("\n", "<br/>") + "</html>"
             
             message.attach(MIMEText(text, "html"))
-            file_part = MIMEBase('application', 'octet-stream')
-            file_part.set_payload(open("C:\\Users\\takvoriane\\Documents\\metalkitor.txt").read())
-            encoders.encode_base64(file_part)
-            file_part.add_header(
-                'Content-Disposition',
-                'attachment; filename=C:\\Users\\takvoriane\\Documents\\metalkitor.txt'
-            )
-            message.attach(file_part)
-            #message.attach(MIMEText(open("C:\\Users\\takvoriane\\Documents\\truc.txt").read(), ))
+
+            file_name = "send-mail.py"
+            attachment = open(file_name, 'rb')
+            obj = MIMEBase('application', 'octet-stream')
+            obj.set_payload((attachment).read())
+            encoders.encode_base64(obj)
+            obj.add_header('Content-Disposition',"attachment", filename=file_name)
+            message.attach(obj)
+            
+
             print(f"Connexion à {domain} avec le port {settings['port']} en cours...")
             try :
                 with smtplib.SMTP_SSL(domain, settings["port"], context=context) as server:
